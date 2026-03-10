@@ -146,7 +146,9 @@ def launch_training_task(
         pick_ranges.append((start, end))
         start = end
     set_seed(42)
+
     print(f"{rank} Entering training loop...")
+
     for epoch_id in range(num_epochs):
         for small_batch_step in tqdm(range(100_000), desc=f"Epoch {epoch_id + 1}/{num_epochs}", disable=not accelerator.is_main_process):
 
@@ -307,7 +309,6 @@ if __name__ == "__main__":
 
     model_logger = ModelLogger(
         args.output_path,
-        remove_prefix_in_ckpt=args.remove_prefix_in_ckpt,
     )
 
     optimizer = torch.optim.AdamW(

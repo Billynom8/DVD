@@ -1,5 +1,5 @@
 CKPT='ckpt/DVD'
-INPUT_VIDEO='demo/dji_crop.mp4'
+INPUT_VIDEO='demo/raw_run_cropped_src.mp4'
 HEIGHT=720
 WIDTH=960
 WINDOW_SIZE=45 

@@ -19,3 +19,5 @@ output/
 inference_results/
 *.mp4
 ckpt/DVD
+.msc
+.mv

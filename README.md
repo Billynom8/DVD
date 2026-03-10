@@ -23,14 +23,14 @@ _**[Hongfei Zhang](https://x.com/hongfeizhang0xF)<sup>1*</sup>, [Harold H. Chen]
 
 
 
-## Introduction
+## 👋Introduction
 
 
-## News
+## 📢News
 
-## Installation
+## 🛠️Installation
 
-### Install from source code:
+### Install from source code (Basic Dependency):
 
 
 ```
@@ -52,6 +52,7 @@ mkdir ckpt
 cd ckpt 
 huggingface
 ```
+### Potential Issue (from [DiffSynth Studio](https://github.com/modelscope/DiffSynth-Studio))
 
 If you encounter issues during installation, it may be caused by the packages we depend on. Please refer to the documentation of the package that caused the problem.
 
@@ -60,34 +61,56 @@ If you encounter issues during installation, it may be caused by the packages we
 * [cmake](https://cmake.org)
 * [cupy](https://docs.cupy.dev/en/stable/install.html)
 
-## 3 Inference
+##  🕹️Inference
 
-### 3.1. For AIGC or Open World Evaluation (Stable Setting)
+###  For AIGC or Open World Evaluation (Stable Setting)
 ```
 bash infer_bash/openworld.sh
 ```
 
-### 3.2. For Academic Purpose (Paper Setting)
+### For Academic Purpose (Paper Setting)
 
-#### 3.2.1 Image Inference
 
-For depth estimation, you can download the [evaluation datasets](https://share.phys.ethz.ch/~pf/bingkedata/marigold/evaluation_dataset/) (depth) by the following commands (referred to Marigold).
+####  1. Video Inference
 
-Run the image inference script
+1.1. Download the [KITTI Dataset](https://www.cvlibs.net/datasets/kitti/), [Bonn Dataset](https://www.ipb.uni-bonn.de/data/rgbd-dynamic-dataset/index.html), [ScanNet Dataset](http://www.scan-net.org/).
+
+1.2. Format the dataset as the structure below
+```
+kitti_depth
+├── rgb
+├──── 2011_09_26
+├──── ...
+├── depth
+├──── train
+├──── val
+
+rgbd_bonn_dataset
+├── rgbd_bonn_balloon
+├── rgbd_bonn_balloon_tracking
+├── ...
+
+scannet
+├── scene0000_00
+├── scene0000_01
+├── ...
+```
+
+1.3. Reconfig the bash (**$VIDEO_BASE_DATA_DIR**) and run the video inference script
+```
+# vi infer_bash/video.sh 
+bash infer_bash/video.sh
+```
+
+####  2. Image Inference
+
+2.1. Download the [evaluation datasets](https://share.phys.ethz.ch/~pf/bingkedata/marigold/evaluation_dataset/) (depth) by the following commands (referred to Marigold).
+
+2.2.
+Reconfig the bash (**$IMAGE_BASE_DATA_DIR**) and run the image inference script
 
 ```
 bash infer_bash/image.sh
 ```
 
-#### 3.2.2 Video Inference
-
-Download the [KITTI Dataset](https://www.cvlibs.net/datasets/kitti/), [Bonn Dataset](https://www.ipb.uni-bonn.de/data/rgbd-dynamic-dataset/index.html), [ScanNet Dataset](http://www.scan-net.org/).
-
-Run the video inference script
-```
-bash infer_bash/video.sh
-```
-
-
-
-## Training 
+## 🔥Training 
