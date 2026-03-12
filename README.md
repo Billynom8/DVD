@@ -36,7 +36,7 @@ By cleanly stripping away generative stochasticity, DVD unites the semantic rich
 * 🚀 **Extreme Data Efficiency:** DVD effectively unlocks profound generative priors using only **367K frames**—which is **163× less** task-specific training data than leading discriminative baselines like VDA (60M frames).
 * ⏱️ **Deterministic & Fast:** Bypasses iterative ODE integration. Inference is performed in a single forward pass, ensuring absolute temporal stability without generative hallucinations.
 * 📐 **Unparalleled Structural Fidelity:** Powered by our Latent Manifold Rectification (LMR), DVD achieves state-of-the-art high-frequency boundary precision (Boundary Recall & F1) compared to overly smoothed baselines.
-* 🎥 **Long-Video Inference:** Equipped with our training-free *Global Affine Coherence* module, DVD seamlessly stitches sliding windows to support unconstrained long-video rollouts (*e.g.*, 1500+ frames) with zero scale drift.
+* 🎥 **Long-Video Inference:** Equipped with our training-free *Global Affine Coherence* module, DVD seamlessly stitches sliding windows to support unconstrained long-video rollouts with zero scale drift.
 
 > **TL;DR:** If you want state-of-the-art video depth estimation that is highly detailed, temporally stable across long videos, and exceptionally data-efficient, **DVD** is what you need.
 
