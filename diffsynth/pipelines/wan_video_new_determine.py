@@ -399,14 +399,11 @@ class WanVideoPipeline(BasePipeline):
         self.model_fn = model_fn_wan_video
 
     def training_predict(self, decode, **inputs):
-        # timestep_id = torch.randint(
-        #     0, self.scheduler.num_train_timesteps, (1,))
         timestep_id = torch.tensor([0])
         # print(f"timestep_id: {timestep_id}")
         timestep = self.scheduler.timesteps[timestep_id].to(
             dtype=self.torch_dtype, device=self.device
         )
-        # print(f"Scheduler timesteps {self.scheduler.timesteps}")
         # print(f"Selected timestep {timestep}")
         inputs["latents"] = inputs['rgb_latents']
         training_target = self.scheduler.training_target(
@@ -439,8 +436,6 @@ class WanVideoPipeline(BasePipeline):
             'depth_video': depth_video,
             "weight": self.scheduler.training_weight(timestep),
         }
-
-        # return loss
 
     def enable_vram_management(
         self, num_persistent_param_in_dit=None, vram_limit=None, vram_buffer=0.5
@@ -1700,7 +1695,6 @@ def model_fn_wan_video(
         def create_custom_forward(module):
             def custom_forward(*inputs, **kwargs):
                 return module(*inputs, **kwargs)
-
             return custom_forward
 
         for idx, block in enumerate(dit.blocks):
@@ -1751,6 +1745,4 @@ def model_fn_wan_video(
         f -= 1
 
     latents = dit.unpatchify(latents, (f, h, w))
-    return latents
-    return latents
     return latents

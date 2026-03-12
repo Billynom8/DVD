@@ -179,6 +179,7 @@ def launch_training_task(
                     pred_depth = pred
                 loss = torch.nn.functional.mse_loss(
                     depth_gt, pred_depth)
+                
                 accumulate_depth_loss += loss.item()
 
                 if args.get('grad_loss', False):
@@ -190,12 +191,14 @@ def launch_training_task(
                         _grad_t = 0
                     loss += grad_co * (_grad_t+_grad_h+_grad_w)
                 accumulate_grad_loss += loss.item()
-
+                
+                print(f"Microstep {small_batch_step} total loss: {loss.item()} pred_depth shape: {pred_depth.shape}, gt_depth shape: {depth_gt.shape}")
                 accelerator.backward(loss)
                 acm_cnt += 1
 
                 # Update optimizer and scheduler
                 if accelerator.sync_gradients:
+                    
                     if args.get('clip_grad_norm', True):
                         accelerator.clip_grad_norm_(
                             model.trainable_modules(), max_norm=1.0)
@@ -203,6 +206,7 @@ def launch_training_task(
                     optimizer.zero_grad(set_to_none=True)
                     scheduler.step()
                     global_step += 1
+                    # print(f"Step at {global_step} microstep {small_batch_step}")
 
                     # Calculate the average loss across all processes
                     if global_step % log_step == 0:

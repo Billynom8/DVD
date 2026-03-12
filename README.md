@@ -52,7 +52,7 @@ By cleanly stripping away generative stochasticity, DVD unites the semantic rich
 ```
 git clone https://github.com/EnVision-Research/DVD.git
 cd DVD
-conda create -n DVD python=3.10 -y 
+conda create -n dvd python=3.10 -y 
 conda activate dvd 
 pip install -e .
 ```

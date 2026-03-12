@@ -1,4 +1,4 @@
-CKPT='ckpt/DVD'
+CKPT='ckpt'
 
 # You could increase the resolution here but expect slower inference speed.
 HEIGHT=480
