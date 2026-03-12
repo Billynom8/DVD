@@ -398,7 +398,7 @@ class WanVideoPipeline(BasePipeline):
 
         self.model_fn = model_fn_wan_video
 
-    def training_predict(self, decode, **inputs):
+    def training_predict(self, **inputs):
         timestep_id = torch.tensor([0])
         # print(f"timestep_id: {timestep_id}")
         timestep = self.scheduler.timesteps[timestep_id].to(
@@ -410,30 +410,11 @@ class WanVideoPipeline(BasePipeline):
             inputs["depth_latents"], inputs["rgb_latents"], timestep
         )
         noise_pred = self.model_fn(**inputs, timestep=timestep)
-        final_res = self.scheduler.step(
-            model_output=noise_pred,
-            sample=inputs['rgb_latents'],
-        )
-        _latent_depth = None
-        if isinstance(final_res, tuple):
-            _, _latent_depth = final_res
-        else:
-            _latent_depth = final_res
 
-        depth_video = None
-        if decode:
-            depth_video = self.vae.decode(
-                _latent_depth,
-                device=self.device,
-                tiled=True,
-                tile_size=(30, 52),
-                tile_stride=(15, 26),
-            )
         return {
             'rgb_gt': inputs['rgb_latents'],
             "depth_gt": training_target,
             "pred": noise_pred,
-            'depth_video': depth_video,
             "weight": self.scheduler.training_weight(timestep),
         }
 
@@ -818,6 +799,7 @@ class WanVideoPipeline(BasePipeline):
                 model_output=noise_pred,
                 sample=inputs_shared["latents"],
             )
+            
         rgb, depth = None, None
         if isinstance(inputs_shared['latents'], tuple):
             rgb, depth = inputs_shared['latents']

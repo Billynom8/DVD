@@ -66,7 +66,7 @@ pip install sageattention
 #### 1. Make dir and login to huggingface
 ```
 mkdir ckpt
-huggingface-cli login
+huggingface-cli login # Or hf auth login 
 ```
 ####  2. Download the checkpoint
 

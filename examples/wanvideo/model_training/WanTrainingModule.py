@@ -51,6 +51,7 @@ class WanTrainingModule(DiffusionTrainingModule):
                 )
                 for i in model_id_with_origin_paths
             ]
+            
         self.pipe = WanVideoPipeline.from_pretrained(
             torch_dtype=torch.bfloat16,
             device="cpu",
@@ -175,13 +176,11 @@ class WanTrainingModule(DiffusionTrainingModule):
 
     def forward(self, data, inputs=None, args=None):
         # if inputs is None:
-        decode_depth = args.get('decode_depth', False)
         inputs = self.forward_preprocess(data)
         models = {
             name: getattr(self.pipe, name) for name in self.pipe.in_iteration_models
         }
-        res_dict = self.pipe.training_predict(
-            decode=decode_depth, **models, **inputs, )
+        res_dict = self.pipe.training_predict( **models, **inputs )
         return res_dict
 
 

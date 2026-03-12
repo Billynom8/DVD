@@ -78,12 +78,14 @@ class FlowMatchScheduler:
 
     def step(self, model_output, sample, to_final=False, **kwargs):
         if self.target == 'x':
+            # print(f"use target x")
             return model_output
         elif self.target == 'flow':
             return sample - model_output
 
     def training_target(self, sample, noise, timestep):
         if self.target == 'x':
+            # print(f"use target x for training")
             return sample
         elif self.target == 'flow':
             target = noise - sample

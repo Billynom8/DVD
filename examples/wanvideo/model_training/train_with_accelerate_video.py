@@ -177,8 +177,10 @@ def launch_training_task(
                     pred_depth, pred_rgb = pred
                 else:
                     pred_depth = pred
+                
                 loss = torch.nn.functional.mse_loss(
                     depth_gt, pred_depth)
+                print(f"Depth gt range: {depth_gt.min()}, {depth_gt.max()}, pred depth range: {pred_depth.min()}, {pred_depth.max()}")
                 
                 accumulate_depth_loss += loss.item()
 
@@ -192,7 +194,7 @@ def launch_training_task(
                     loss += grad_co * (_grad_t+_grad_h+_grad_w)
                 accumulate_grad_loss += loss.item()
                 
-                print(f"Microstep {small_batch_step} total loss: {loss.item()} pred_depth shape: {pred_depth.shape}, gt_depth shape: {depth_gt.shape}")
+                # accelerator.print(f"Microstep {small_batch_step} total loss: {loss.item()} pred_depth shape: {pred_depth.shape}, gt_depth shape: {depth_gt.shape}")
                 accelerator.backward(loss)
                 acm_cnt += 1
 
