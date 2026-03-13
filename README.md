@@ -142,6 +142,17 @@ You may also put more videos in the `demo/` directory and alter the video path i
 
 ---
 
+### 🤗 Gradio Demo
+
+1. Run the demo online: [Hugging Face Space](https://huggingface.co/spaces/haodongli/DVD)
+2. Run it locally:
+
+```
+python test_script/app.py
+```
+
+---
+
 
 ### 👩🏼‍🏫 For Academic Purpose (Paper Setting)
 
@@ -185,17 +196,6 @@ Reconfig the bash (**$IMAGE_BASE_DATA_DIR**) and run the image inference script
 
 ```
 bash infer_bash/image.sh
-```
-
----
-
-## 🤗 Gradio Demo
-
-1. Run the demo online: [Hugging Face Space](https://huggingface.co/spaces/haodongli/DVD)
-2. Run it locally:
-
-```
-python test_script/app.py
 ```
 
 ---
