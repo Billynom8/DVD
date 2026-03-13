@@ -9,12 +9,13 @@ _**[Hongfei Zhang](https://x.com/hongfeizhang0xF)<sup>1*</sup>, [Harold H. Chen]
 <br><br>
 <sup>*</sup>Equal Contribution; <sup>†</sup>Corresponding Author
 <br>
-<sup>1</sup>HKUST(GZ), <sup>2</sup>HKUST, <sup>3</sup>UCSD, <sup>4</sup>Princeton University, <sup>5</sup>MBZUAI, <sup>6</sup>SZU, <sup>7</sup>Knowin, <sup>8</sup>UniTrento,
+<sup>1</sup>HKUST(GZ), <sup>2</sup>HKUST, <sup>3</sup>UCSD, <sup>4</sup>Princeton University, <sup>5</sup>MBZUAI, <sup>6</sup>SZU, <sup>7</sup>Knowin, <sup>8</sup>UniTrento
 
 <h5 align="center"> If you like our project, please give us a star ⭐ on GitHub for latest update.  </h2>
 
- <a href='https://arxiv.org/abs/2603.12250'><img src='https://img.shields.io/badge/arXiv-2603.12250-b31b1b.svg'></a>
  [![Project Page](https://img.shields.io/badge/DVD-Website-green?logo=googlechrome&logoColor=green)](https://dvd-project.github.io/)
+ [![Paper](https://img.shields.io/badge/arXiv-Paper-b31b1b?logo=arxiv&logoColor=white)](https://arxiv.org/abs/2603.12250)
+ [![Model](https://img.shields.io/badge/🤗%20HuggingFace-Model%20-yellow)](https://huggingface.co/FayeHongfeiZhang/DVD/tree/main)
 <br>
 
 </div>
@@ -96,7 +97,6 @@ pip install sageattention # DO NOT USE THIS FOR TRAINING!!!
 
 #### 1. Make dir and login to huggingface
 ```
-mkdir ckpt
 huggingface-cli login # Or hf auth login 
 ```
 ####  2. Download the checkpoint from [huggingface repo](https://huggingface.co/FayeHongfeiZhang/DVD/tree/main)
@@ -130,7 +130,7 @@ If you encounter issues during installation, it may be caused by the packages we
 
 ## 🕹️ Inference
 
-### 🤹🏼‍♂️ For AIGC or Open World Evaluation (Stable Setting)
+### 🤹🏼‍♂️ Quick Start with Demo Videos
 
 ```
 bash infer_bash/openworld.sh
