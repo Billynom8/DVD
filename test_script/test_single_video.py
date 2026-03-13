@@ -216,7 +216,7 @@ def generate_depth_sliced(model, input_rgb, window_size=45, overlap=9, scale_onl
 
             depth_list_aligned = np.concatenate(
                 [depth_list_aligned[:, :-real_overlap], smooth_overlap,
-                    aligned_t[:, real_overlap:]], axis=1
+                 aligned_t[:, real_overlap:]], axis=1
             )
         else:
             # Fallback if no overlap exists
@@ -232,8 +232,75 @@ def generate_depth_sliced(model, input_rgb, window_size=45, overlap=9, scale_onl
 
 
 # =============================
-# Main Script
+# Pipeline Components
 # =============================
+def load_model(ckpt_dir, yaml_args):
+    """Initializes and loads the model checkpoint."""
+    accelerator = Accelerator()
+    model = WanTrainingModule(
+        accelerator=accelerator,
+        model_id_with_origin_paths=yaml_args.model_id_with_origin_paths,
+        trainable_models=None,
+        use_gradient_checkpointing=False,
+        lora_rank=yaml_args.lora_rank,
+        lora_base_model=yaml_args.lora_base_model,
+        args=yaml_args,
+    )
+
+    ckpt_path = os.path.join(ckpt_dir, "model.safetensors")
+    state_dict = load_file(ckpt_path, device="cpu")
+    dit_state_dict = {k.replace("pipe.dit.", ""): v for k,
+                      v in state_dict.items() if "pipe.dit." in k}
+    model.pipe.dit.load_state_dict(dit_state_dict, strict=True)
+    model.merge_lora_layer()
+    model = model.to("cuda")
+    
+    return model
+
+
+def load_video_data(args):
+    """Loads and resizes the input video."""
+    input_tensor, origin_fps = read_video(args.input_video)
+    print("Original shape:", input_tensor.shape)
+
+    input_tensor, orig_size = resize_for_training_scale(
+        input_tensor, args.height, args.width)
+    print("Resized shape:", input_tensor.shape)
+    print(f"input range {input_tensor.min()} - {input_tensor.max()}")
+
+    return input_tensor, orig_size, origin_fps
+
+
+def predict_depth(model, input_tensor, orig_size, args):
+    """Runs depth prediction and post-processes the output to original size."""
+    depth = generate_depth_sliced(
+        model, input_tensor, args.window_size, args.overlap)[0]
+    print(f"depth range shape {depth.min()} - {depth.max()}, shape {depth.shape}")
+
+    # Post Process: resize back to original
+    depth = resize_depth_back(depth, orig_size)
+    print(f"after resizing {depth.min()} - {depth.max()}, {depth.shape}")
+
+    return depth
+
+
+def save_results(depth, origin_fps, args):
+    """Normalizes and saves the depth video to disk."""
+    os.makedirs(args.output_dir, exist_ok=True)
+    exp_name = datetime.now().strftime("%m-%d-%H%M")
+    base_name = os.path.basename(args.input_video).split('.')[0]
+    gray_scale = 'gray' if args.grayscale else 'color'
+    out_prefix = os.path.join(
+        args.output_dir, f"{base_name}_{exp_name}_{gray_scale}")
+
+    print(f"Saving to {out_prefix}_depth_vis.mp4")
+    d_min, d_max = depth.min(), depth.max()
+    vis_depth = (depth - d_min) / (d_max - d_min + 1e-8)
+    
+    save_video(vis_depth, f"{out_prefix}_depth_vis.mp4",
+               fps=origin_fps, quality=6, grayscale=args.grayscale)
+
+
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--ckpt", type=str, required=True)
@@ -249,62 +316,24 @@ def parse_args():
     return parser.parse_args()
 
 
+# =============================
+# Main Script
+# =============================
 def main():
     args = parse_args()
     yaml_args = OmegaConf.load(args.model_config)
 
-    # Prepare Data
-    input_tensor, origin_fps = read_video(args.input_video)
-    print("Original shape:", input_tensor.shape)
+    # 1. Load Model
+    model = load_model(args.ckpt, yaml_args)
 
-    input_tensor, orig_size = resize_for_training_scale(
-        input_tensor, args.height, args.width)
-    print("Resized shape:", input_tensor.shape)
-    print(f"input range {input_tensor.min()} - {input_tensor.max()}")
+    # 2. Load Video
+    input_tensor, orig_size, origin_fps = load_video_data(args)
 
-    # Model Init
-    accelerator = Accelerator()
-    model = WanTrainingModule(
-        accelerator=accelerator,
-        model_id_with_origin_paths=yaml_args.model_id_with_origin_paths,
-        trainable_models=None,
-        use_gradient_checkpointing=False,
-        lora_rank=yaml_args.lora_rank,
-        lora_base_model=yaml_args.lora_base_model,
-        args=yaml_args,
-    )
+    # 3. Predict Depth
+    depth = predict_depth(model, input_tensor, orig_size, args)
 
-    ckpt_path = os.path.join(args.ckpt, "model.safetensors")
-    state_dict = load_file(ckpt_path, device="cpu")
-    dit_state_dict = {k.replace("pipe.dit.", ""): v for k,
-                      v in state_dict.items() if "pipe.dit." in k}
-    model.pipe.dit.load_state_dict(dit_state_dict, strict=True)
-    model.merge_lora_layer()
-    model = model.to("cuda")
-
-    # Inference
-    depth = generate_depth_sliced(
-        model, input_tensor, args.window_size, args.overlap)[0]
-    print(
-        f"depth range shape {depth.min()} - {depth.max()}, shape {depth.shape}")
-
-    # Post Process
-    depth = resize_depth_back(depth, orig_size)
-    print(f"after resizing {depth.min()} - {depth.max()}, {depth.shape}")
-
-    # Save
-    os.makedirs(args.output_dir, exist_ok=True)
-    exp_name = datetime.now().strftime("%m-%d-%H%M")
-    base_name = os.path.basename(args.input_video).split('.')[0]
-    gray_scale = 'gray' if args.grayscale else 'color'
-    out_prefix = os.path.join(
-        args.output_dir, f"{base_name}_{exp_name}_{gray_scale}")
-
-    print(f"Saving to {out_prefix}_depth_vis.mp4")
-    d_min, d_max = depth.min(), depth.max()
-    vis_depth = (depth - d_min) / (d_max - d_min + 1e-8)
-    save_video(vis_depth, f"{out_prefix}_depth_vis.mp4",
-               fps=origin_fps, quality=6, grayscale=args.grayscale)
+    # 4. Save Results
+    save_results(depth, origin_fps, args)
 
     print("Inference completed successfully!")
 
