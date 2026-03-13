@@ -7,9 +7,9 @@ This document provides a comprehensive guide to training **DVD (Deterministic Vi
 Before starting, it is helpful to understand the core scripts involved in the training process:
 
 * `train_script/train_video_new.sh`,`examples/wanvideo/model_training/train_with_accelerate_video.py`: The main entry point for the training loop.
-* `examples/wanvideo/model_training/WanTrainingModule.py`: Handles training and validate logic. Please note that we only validate on a single window during training. Please consider use the inference script to perform more validation to save time if needed.
+* `examples/wanvideo/model_training/WanTrainingModule.py`: Handles training and validation logic. Please note that we only validate on a single window during training. Please consider using the inference script to perform more validation to save time if needed.
 * `examples/dataset`: Handles dataset (both train and val).
-* `train_config/normal_config/video_config_new.yaml`: Contains all hyperparameters, including learning rate, batch size, dataset config and so on.
+* `train_config/normal_config/video_config_new.yaml`: Contains all hyperparameters, including learning rate, batch size, dataset config, and so on.
 * `diffsynth/pipelines/wan_video_new_determine.py`: The core model architecture.
 
 ---
@@ -56,7 +56,7 @@ Key parameters you might want to adjust based on your hardware:
 * `denoise_step`: The $\tau$ condition in our paper.
 * `grad_loss` , `grad_co`: The LMR and the $\lambda_{LMR}$ in our paper.
 * `lora_rank`: Set to 512 following [Lotus-2](https://lotus-2.github.io/).
-* `init_validate`: Whether perform initial validation before training.
+* `init_validate`: Whether to perform initial validation before training.
 * `log_step`: Interval for logging training state.
 * `prob`: The ratio for Hypersim(img), Virtual KITTI(img), TartanAir(vid), Virtual KITTI(vid).
 * `batch_size`: The batch for **image**. The default batch_size for video is 1.
@@ -73,7 +73,7 @@ We use `accelerate` for multi-GPU training. To train on 4 GPUs:
 ```bash
 bash train_script/train_video_new.sh
 ```
-You might also alter the files under `train_config/accelerate_config` to change the gpus configuration(e.g., for single GPU or DEEPSPEED).
+You might also alter the files under `train_config/accelerate_config` to change the GPU configuration(e.g., for single GPU or DEEPSPEED).
 
 
 ---
