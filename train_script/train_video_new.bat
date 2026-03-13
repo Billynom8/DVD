@@ -1,0 +1,3 @@
+@echo off
+cd /d "%~dp0.."
+uv run accelerate launch --config_file train_config/accelerate_config/accelerate_acc4.yaml -m examples.wanvideo.model_training.train_with_accelerate_video --config train_config/normal_config/video_config_new.yaml
