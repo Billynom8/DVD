@@ -62,6 +62,37 @@ def read_video_early_downsample(video_path, target_w):
     return video_tensor.unsqueeze(0), fps, (orig_h, orig_w)
 
 
+def get_video_info(video_path):
+    """Get video metadata using cv2."""
+    cap = cv2.VideoCapture(video_path)
+    if not cap.isOpened():
+        return None
+
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    cap.release()
+
+    return {"fps": fps, "width": width, "height": height, "total_frames": total_frames}
+
+
+def calculate_segments(T, window_size, overlap):
+    """Calculate number of segments and final chunk size."""
+    if T <= window_size:
+        return 1, T
+
+    segments = [(0, window_size)]
+    start = window_size - overlap
+    while start < T:
+        end = min(start + window_size, T)
+        segments.append((start, end))
+        start += window_size - overlap
+
+    final_chunk = T - segments[-1][0]
+    return len(segments), final_chunk
+
+
 if "model_loaded" not in st.session_state:
     st.session_state.model_loaded = False
 if "model" not in st.session_state:
@@ -189,7 +220,9 @@ with col3:
 
 
 st.header("Step 2: Select Video")
-input_video = st.file_uploader("Upload video", type=["mp4", "avi", "mov", "mkv", "webm"])
+input_video = st.file_uploader(
+    "Upload video", type=["mp4", "avi", "mov", "mkv", "webm", "av1", "mpv", "flv", "mpeg", "m4v"]
+)
 
 if input_video:
     temp_dir = Path("temp_uploads")
@@ -205,6 +238,16 @@ if input_video:
     st.success(f"Video loaded: {input_video.name}")
     video_bytes = input_video.getvalue()
     st.video(video_bytes, format="video/mp4")
+
+    video_info = get_video_info(str(input_path))
+    if video_info:
+        num_segments, final_chunk = calculate_segments(video_info["total_frames"], window_size, overlap)
+
+        st.info(
+            f"**Video Info:** {video_info['width']}x{video_info['height']} | "
+            f"{video_info['total_frames']} frames | {video_info['fps']:.2f} fps | "
+            f"**Segments:** {num_segments} (final chunk: {final_chunk} frames)"
+        )
 
     args.input_video = str(input_path)
 
