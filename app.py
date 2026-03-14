@@ -52,6 +52,10 @@ if "current_video" not in st.session_state:
     st.session_state.current_video = None
 if "depth_result" not in st.session_state:
     st.session_state.depth_result = None
+if "stop_requested" not in st.session_state:
+    st.session_state.stop_requested = False
+if "is_inferring" not in st.session_state:
+    st.session_state.is_inferring = False
 
 
 st.title("Depth Estimation Pipeline")
@@ -122,6 +126,37 @@ else:
     st.warning("Please load the model first")
 
 
+st.header("Utility")
+
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    if st.button("Clear CUDA Cache", disabled=st.session_state.is_inferring):
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+            torch.cuda.synchronize()
+            st.success("CUDA cache cleared!")
+        else:
+            st.warning("No CUDA device available")
+
+with col2:
+    if st.button("Unload Model", disabled=st.session_state.is_inferring):
+        if st.session_state.model is not None:
+            del st.session_state.model
+            st.session_state.model = None
+            st.session_state.model_loaded = False
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+            st.success("Model unloaded!")
+        else:
+            st.warning("No model loaded")
+
+with col3:
+    if st.button("Stop Inference", type="primary", disabled=not st.session_state.is_inferring):
+        st.session_state.stop_requested = True
+        st.warning("Stop requested - current inference will complete")
+
+
 st.header("Step 2: Select Video")
 input_video = st.file_uploader("Upload video", type=["mp4", "avi", "mov", "mkv", "webm"])
 
@@ -154,6 +189,8 @@ if run_depth:
         st.error("Please upload a video first")
     else:
         if st.button("Generate Depth", type="primary"):
+            st.session_state.is_inferring = True
+            st.session_state.stop_requested = False
             with st.spinner("Processing video... this may take a while"):
                 try:
                     if early_downsample:
@@ -176,11 +213,17 @@ if run_depth:
 
                         depth = predict_depth(st.session_state.model, input_tensor, orig_size, args)
 
-                    st.session_state.depth_result = depth
-                    st.session_state.origin_fps = origin_fps
-                    st.success("Depth estimation completed!")
+                    if st.session_state.stop_requested:
+                        st.warning("Inference stopped by user")
+                        st.session_state.stop_requested = False
+                    else:
+                        st.session_state.depth_result = depth
+                        st.session_state.origin_fps = origin_fps
+                        st.success("Depth estimation completed!")
                 except Exception as e:
                     st.error(f"Error during depth estimation: {str(e)}")
+                finally:
+                    st.session_state.is_inferring = False
 
 if st.session_state.depth_result is not None:
     st.info("Depth estimation result ready")
