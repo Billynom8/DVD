@@ -6,6 +6,24 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 from pathlib import Path
+import json
+
+CONFIG_FILE = Path("app_config.json")
+
+
+def load_settings():
+    if CONFIG_FILE.exists():
+        with open(CONFIG_FILE, "r") as f:
+            return json.load(f)
+    return {}
+
+
+def save_settings(settings):
+    with open(CONFIG_FILE, "w") as f:
+        json.dump(settings, f)
+
+
+default_settings = load_settings()
 
 st.set_page_config(page_title="Depth Estimation", layout="wide")
 
@@ -68,19 +86,32 @@ model_config = st.sidebar.text_input("Model Config", value="ckpt/model_config.ya
 st.sidebar.subheader("Processing Options")
 early_downsample = st.sidebar.checkbox(
     "Early Downsample (saves RAM)",
-    value=True,
+    value=default_settings.get("early_downsample", True),
     help="Downsample video during loading instead of after. Reduces RAM usage.",
 )
 skip_upscale = st.sidebar.checkbox(
     "Skip Upscale (keep low-res output)",
-    value=True,
+    value=default_settings.get("skip_upscale", True),
     help="Skip upscaling at the end. Output will be at inference resolution.",
 )
-window_size = st.sidebar.number_input("Window Size", value=81, min_value=9, step=9)
-overlap = st.sidebar.number_input("Overlap", value=9, min_value=0)
-width = st.sidebar.number_input("Width", value=640, step=16)
-grayscale = st.sidebar.checkbox("Grayscale Output", value=False)
-output_dir = st.sidebar.text_input("Output Directory", value="./inference_results")
+window_size = st.sidebar.number_input("Window Size", value=default_settings.get("window_size", 81), min_value=9, step=9)
+overlap = st.sidebar.number_input("Overlap", value=default_settings.get("overlap", 9), min_value=0)
+width = st.sidebar.number_input("Width", value=default_settings.get("width", 640), step=16)
+grayscale = st.sidebar.checkbox("Grayscale Output", value=default_settings.get("grayscale", False))
+output_dir = st.sidebar.text_input("Output Directory", value=default_settings.get("output_dir", "./inference_results"))
+
+if st.sidebar.button("Save Settings"):
+    settings = {
+        "early_downsample": early_downsample,
+        "skip_upscale": skip_upscale,
+        "window_size": window_size,
+        "overlap": overlap,
+        "width": width,
+        "grayscale": grayscale,
+        "output_dir": output_dir,
+    }
+    save_settings(settings)
+    st.sidebar.success("Settings saved!")
 
 
 class Args:
