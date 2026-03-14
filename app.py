@@ -10,8 +10,8 @@ from pathlib import Path
 st.set_page_config(page_title="Depth Estimation", layout="wide")
 
 
-def read_video_early_downsample(video_path, target_h, target_w):
-    """Read video and downsample during loading to save RAM."""
+def read_video_early_downsample(video_path, target_w):
+    """Read video and downsample during loading to save RAM. Width fixed, height scales."""
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
         raise ValueError(f"Cannot open video: {video_path}")
@@ -20,9 +20,9 @@ def read_video_early_downsample(video_path, target_h, target_w):
     orig_w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     orig_h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
-    ratio = max(target_h / orig_h, target_w / orig_w)
+    ratio = target_w / orig_w
+    new_w = target_w
     new_h = int(np.ceil(orig_h * ratio))
-    new_w = int(np.ceil(orig_w * ratio))
     new_h = (new_h + 15) // 16 * 16
     new_w = (new_w + 15) // 16 * 16
 
@@ -74,7 +74,6 @@ skip_upscale = st.sidebar.checkbox(
 )
 window_size = st.sidebar.number_input("Window Size", value=81, min_value=9, step=9)
 overlap = st.sidebar.number_input("Overlap", value=9, min_value=0)
-height = st.sidebar.number_input("Height", value=480, step=16)
 width = st.sidebar.number_input("Width", value=640, step=16)
 grayscale = st.sidebar.checkbox("Grayscale Output", value=False)
 output_dir = st.sidebar.text_input("Output Directory", value="./inference_results")
@@ -89,7 +88,7 @@ args.ckpt = ckpt_dir
 args.model_config = model_config
 args.window_size = window_size
 args.overlap = overlap
-args.height = height
+args.height = 480
 args.width = width
 args.grayscale = grayscale
 args.output_dir = output_dir
@@ -124,7 +123,7 @@ else:
 
 
 st.header("Step 2: Select Video")
-input_video = st.file_uploader("Upload video", type=["mp4", "avi", "mov", "mkv"])
+input_video = st.file_uploader("Upload video", type=["mp4", "avi", "mov", "mkv", "webm"])
 
 if input_video:
     temp_dir = Path("temp_uploads")
@@ -158,9 +157,7 @@ if run_depth:
             with st.spinner("Processing video... this may take a while"):
                 try:
                     if early_downsample:
-                        input_tensor, origin_fps, orig_size = read_video_early_downsample(
-                            args.input_video, args.height, args.width
-                        )
+                        input_tensor, origin_fps, orig_size = read_video_early_downsample(args.input_video, args.width)
                         print(f"Early downsampled: {input_tensor.shape}, orig_size: {orig_size}")
                     else:
                         from test_script.test_batch_video import load_video_data
