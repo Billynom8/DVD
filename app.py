@@ -93,9 +93,47 @@ save_16bit_png = st.sidebar.checkbox(
 if not grayscale and not color_output and not save_16bit_png:
     st.sidebar.warning("Warning: No outputs selected.")
 
-output_dir = st.sidebar.text_input(
-    "Output Directory", value=default_settings.get("output_dir", "./inference_results"), disabled=st.session_state.is_inferring
+st.sidebar.subheader("File & Folder Settings")
+
+# 1. Source Folder
+source_folder = st.sidebar.text_input(
+    "Local Source Folder", 
+    value=default_settings.get("source_folder", ""), 
+    help="Path to a folder containing videos to process.",
+    disabled=st.session_state.is_inferring
 )
+
+# 2. Output Directory
+output_dir = st.sidebar.text_input(
+    "Output Directory", 
+    value=default_settings.get("output_dir", "./inference_results"),
+    disabled=st.session_state.is_inferring
+)
+
+resume_mode = st.sidebar.checkbox(
+    "Resume", 
+    value=default_settings.get("resume_mode", False), 
+    help="Moves finished videos to a 'finished' subfolder.",
+    disabled=st.session_state.is_inferring
+)
+
+if st.sidebar.button("Scan Folder", disabled=st.session_state.is_inferring, use_container_width=True):
+    if os.path.exists(source_folder):
+        extensions = [".mp4", ".avi", ".mov", ".mkv", ".webm"]
+        folder_paths = [
+            str(Path(source_folder) / f) for f in os.listdir(source_folder) 
+            if any(f.lower().endswith(ext) for ext in extensions)
+        ]
+        if folder_paths:
+            st.session_state.input_paths = folder_paths
+            st.session_state.depth_result = None
+            st.session_state.batch_results = None
+            st.session_state.single_results = []
+            st.sidebar.success(f"Found {len(folder_paths)} videos.")
+        else:
+            st.sidebar.warning("No videos found.")
+    else:
+        st.sidebar.error("Source folder does not exist.")
 
 if st.sidebar.button("Save Settings", disabled=st.session_state.is_inferring):
     settings = {
@@ -109,6 +147,8 @@ if st.sidebar.button("Save Settings", disabled=st.session_state.is_inferring):
         "use_10bit": use_10bit,
         "save_16bit_png": save_16bit_png,
         "output_dir": output_dir,
+        "source_folder": source_folder,
+        "resume_mode": resume_mode,
     }
     save_settings(settings)
     st.sidebar.success("Settings saved!")
@@ -200,20 +240,19 @@ with col3:
         st.warning("Stop requested - current inference will complete")
 
 
-st.header("Step 2: Select Video")
+st.header("Step 2: Processing Queue")
 if st.session_state.is_inferring:
-    st.info("Inference in progress... Uploads disabled.")
-    # Show current paths being processed
+    st.info("Inference in progress... Queue locked.")
     if st.session_state.input_paths:
-        st.write(f"Processing {len(st.session_state.input_paths)} video(s):")
+        st.write(f"Currently processing {len(st.session_state.input_paths)} video(s):")
         for p in st.session_state.input_paths:
             st.text(f"- {os.path.basename(p)}")
 else:
+    # 1. Option A: Manual Upload
     input_videos = st.file_uploader(
-        "Upload video(s)", type=["mp4", "avi", "mov", "mkv", "webm"], accept_multiple_files=True
+        "Upload video(s) manually", type=["mp4", "avi", "mov", "mkv", "webm"], accept_multiple_files=True
     )
     if input_videos:
-        # Only reset and save if the files are different from what we have
         current_names = [os.path.basename(p) for p in st.session_state.input_paths]
         new_names = [vid.name for vid in input_videos]
         
@@ -231,30 +270,34 @@ else:
             st.session_state.depth_result = None
             st.session_state.batch_results = None
             st.session_state.single_results = []
+            st.success(f"Queue updated with {len(new_paths)} uploaded video(s).")
+
+    # 2. Display Queue Status
+    if st.session_state.input_paths:
+        num_vids = len(st.session_state.input_paths)
+        if num_vids > 1:
+            st.info(f"📋 **Batch Queue:** {num_vids} videos ready for processing.")
+            with st.expander("Show file list"):
+                for p in st.session_state.input_paths:
+                    st.text(f"- {os.path.basename(p)}")
+        else:
+            st.success(f"🎯 **Single Video:** {os.path.basename(st.session_state.input_paths[0])}")
+            st.video(st.session_state.input_paths[0])
             
-            if len(new_paths) == 1:
-                st.session_state.current_video = os.path.basename(new_paths[0])
-            st.success(f"{len(new_paths)} new video(s) ready.")
-
-    input_paths = st.session_state.input_paths
-    batch_mode = len(input_paths) > 1
-
-    if input_paths and not batch_mode:
-        st.video(input_paths[0])
+            # Show video info only for single mode
+            video_info = get_video_info(st.session_state.input_paths[0])
+            if video_info:
+                num_segments, final_chunk = calculate_segments(video_info["total_frames"], window_size, overlap)
+                st.info(
+                    f"**Video Info:** {video_info['width']}x{video_info['height']} | "
+                    f"{video_info['total_frames']} frames | {video_info['fps']:.2f} fps | "
+                    f"**Segments:** {num_segments}"
+                )
+    else:
+        st.warning("Queue is empty. Upload videos or use 'Scan Folder' in the sidebar.")
 
 input_paths = st.session_state.input_paths
 batch_mode = len(input_paths) > 1
-
-if input_paths and not st.session_state.is_inferring:
-    if not batch_mode:
-        video_info = get_video_info(input_paths[0])
-        if video_info:
-            num_segments, final_chunk = calculate_segments(video_info["total_frames"], window_size, overlap)
-            st.info(
-                f"**Video Info:** {video_info['width']}x{video_info['height']} | "
-                f"{video_info['total_frames']} frames | {video_info['fps']:.2f} fps | "
-                f"**Segments:** {num_segments} (final chunk: {final_chunk} frames)"
-            )
 
 
 st.header("Step 3: Run Depth Estimation")
@@ -307,6 +350,15 @@ if run_depth:
                                 saved_paths.append(out)
 
                             results.append({"name": vid_name, "output": saved_paths, "success": True})
+                            
+                            # Resume mode: Move original file to 'finished' folder
+                            if resume_mode:
+                                finished_dir = Path(os.path.dirname(input_path)) / "finished"
+                                finished_dir.mkdir(exist_ok=True)
+                                import shutil
+                                shutil.move(input_path, finished_dir / vid_name)
+                                st.success(f"Moved {vid_name} to finished folder.")
+
                         except Exception as e:
                             results.append({"name": vid_name, "error": str(e), "success": False})
                             st.error(f"Failed: {vid_name} - {str(e)}")
