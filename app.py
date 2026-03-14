@@ -1,97 +1,19 @@
 import streamlit as st
 import os
 import sys
-import cv2
-import numpy as np
 import torch
-import torch.nn.functional as F
 from pathlib import Path
-import json
 
-CONFIG_FILE = Path("app_config.json")
+# Add core to path if needed
+sys.path.append(str(Path(__file__).parent))
 
-
-def load_settings():
-    if CONFIG_FILE.exists():
-        with open(CONFIG_FILE, "r") as f:
-            return json.load(f)
-    return {}
-
-
-def save_settings(settings):
-    with open(CONFIG_FILE, "w") as f:
-        json.dump(settings, f)
-
+from core.config import load_settings, save_settings
+from core.io import get_video_info, read_video_early_downsample, save_video_ffmpeg, save_depth_png_sequence
+from core.utils import calculate_segments
 
 default_settings = load_settings()
 
 st.set_page_config(page_title="Depth Estimation", layout="wide")
-
-
-def read_video_early_downsample(video_path, target_w):
-    """Read video and downsample during loading to save RAM. Width fixed, height scales."""
-    cap = cv2.VideoCapture(video_path)
-    if not cap.isOpened():
-        raise ValueError(f"Cannot open video: {video_path}")
-
-    fps = cap.get(cv2.CAP_PROP_FPS)
-    orig_w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    orig_h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-
-    ratio = target_w / orig_w
-    new_w = target_w
-    new_h = int(np.ceil(orig_h * ratio))
-    new_h = (new_h + 15) // 16 * 16
-    new_w = (new_w + 15) // 16 * 16
-
-    frames = []
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            break
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        if new_h != orig_h or new_w != orig_w:
-            frame = cv2.resize(frame, (new_w, new_h), interpolation=cv2.INTER_LINEAR)
-        frames.append(frame)
-
-    cap.release()
-
-    video_np = np.stack(frames)
-    video_tensor = torch.from_numpy(video_np).permute(0, 3, 1, 2).float() / 255.0
-
-    return video_tensor.unsqueeze(0), fps, (orig_h, orig_w)
-
-
-def get_video_info(video_path):
-    """Get video metadata using cv2."""
-    cap = cv2.VideoCapture(video_path)
-    if not cap.isOpened():
-        return None
-
-    fps = cap.get(cv2.CAP_PROP_FPS)
-    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    cap.release()
-
-    return {"fps": fps, "width": width, "height": height, "total_frames": total_frames}
-
-
-def calculate_segments(T, window_size, overlap):
-    """Calculate number of segments and final chunk size."""
-    if T <= window_size:
-        return 1, T
-
-    segments = [(0, window_size)]
-    start = window_size - overlap
-    while start < T:
-        end = min(start + window_size, T)
-        segments.append((start, end))
-        start += window_size - overlap
-
-    final_chunk = T - segments[-1][0]
-    return len(segments), final_chunk
-
 
 if "model_loaded" not in st.session_state:
     st.session_state.model_loaded = False
@@ -121,7 +43,7 @@ is_inferring = st.session_state.is_inferring
 st.sidebar.header("Configuration")
 
 ckpt_dir = st.sidebar.text_input("Checkpoint Directory", value="./ckpt", disabled=is_inferring)
-model_config = st.sidebar.text_input("Model Config", value="ckpt/model_config.yaml", disabled=is_inferring)
+model_config_path = st.sidebar.text_input("Model Config", value="ckpt/model_config.yaml", disabled=is_inferring)
 
 st.sidebar.subheader("Processing Options")
 early_downsample = st.sidebar.checkbox(
@@ -143,15 +65,24 @@ overlap = st.sidebar.number_input(
     "Overlap", value=default_settings.get("overlap", 9), min_value=0, disabled=is_inferring
 )
 width = st.sidebar.number_input("Width", value=default_settings.get("width", 640), step=16, disabled=is_inferring)
+
+st.sidebar.subheader("Output Options")
 grayscale = st.sidebar.checkbox(
     "Grayscale Output", value=default_settings.get("grayscale", False), disabled=is_inferring
 )
 color_output = st.sidebar.checkbox(
     "Color Output", value=default_settings.get("color_output", True), disabled=is_inferring
 )
+use_10bit = st.sidebar.checkbox(
+    "Use 10-bit HEVC", value=default_settings.get("use_10bit", False), disabled=is_inferring,
+    help="Elevates Grayscale and Color video bit rate to 10-bit HEVC."
+)
+save_16bit_png = st.sidebar.checkbox(
+    "Save 16-bit PNG seq", value=default_settings.get("save_16bit_png", False), disabled=is_inferring
+)
 
-if not grayscale and not color_output:
-    st.sidebar.warning("Warning: Both outputs are disabled! Enable at least one.")
+if not grayscale and not color_output and not save_16bit_png:
+    st.sidebar.warning("Warning: No outputs selected.")
 
 output_dir = st.sidebar.text_input(
     "Output Directory", value=default_settings.get("output_dir", "./inference_results"), disabled=is_inferring
@@ -166,6 +97,8 @@ if st.sidebar.button("Save Settings", disabled=is_inferring):
         "width": width,
         "grayscale": grayscale,
         "color_output": color_output,
+        "use_10bit": use_10bit,
+        "save_16bit_png": save_16bit_png,
         "output_dir": output_dir,
     }
     save_settings(settings)
@@ -178,7 +111,7 @@ class Args:
 
 args = Args()
 args.ckpt = ckpt_dir
-args.model_config = model_config
+args.model_config = model_config_path
 args.window_size = window_size
 args.overlap = overlap
 args.height = 480
@@ -194,15 +127,15 @@ if st.session_state.model_loaded and st.session_state.model is not None:
     if st.button("Reload Model"):
         if not os.path.exists(ckpt_dir):
             st.error(f"Checkpoint directory not found: {ckpt_dir}")
-        elif not os.path.exists(model_config):
-            st.error(f"Model config not found: {model_config}")
+        elif not os.path.exists(model_config_path):
+            st.error(f"Model config not found: {model_config_path}")
         else:
             with st.spinner("Loading model... this may take a few minutes"):
                 try:
                     from test_script.test_batch_video import load_model
                     from omegaconf import OmegaConf
 
-                    yaml_args = OmegaConf.load(model_config)
+                    yaml_args = OmegaConf.load(model_config_path)
                     model = load_model(ckpt_dir, yaml_args)
 
                     st.session_state.model = model
@@ -214,15 +147,15 @@ else:
     if st.button("Load Model", type="primary", disabled=is_inferring):
         if not os.path.exists(ckpt_dir):
             st.error(f"Checkpoint directory not found: {ckpt_dir}")
-        elif not os.path.exists(model_config):
-            st.error(f"Model config not found: {model_config}")
+        elif not os.path.exists(model_config_path):
+            st.error(f"Model config not found: {model_config_path}")
         else:
             with st.spinner("Loading model... this may take a few minutes"):
                 try:
                     from test_script.test_batch_video import load_model
                     from omegaconf import OmegaConf
 
-                    yaml_args = OmegaConf.load(model_config)
+                    yaml_args = OmegaConf.load(model_config_path)
                     model = load_model(ckpt_dir, yaml_args)
 
                     st.session_state.model = model
@@ -310,16 +243,6 @@ if input_videos:
             st.session_state.current_video = input_video.name
             st.session_state.depth_result = None
             st.session_state.batch_results = None
-        input_video = input_videos[0]
-        temp_dir = Path("temp_uploads")
-        temp_dir.mkdir(exist_ok=True)
-        input_path = temp_dir / input_video.name
-
-        if st.session_state.current_video != input_video.name:
-            with open(input_path, "wb") as f:
-                f.write(input_video.getbuffer())
-            st.session_state.current_video = input_video.name
-            st.session_state.depth_result = None
 
         st.success(f"Video loaded: {input_video.name}")
         video_bytes = input_video.getvalue()
@@ -340,7 +263,7 @@ if input_videos:
 
 st.header("Step 3: Run Depth Estimation")
 
-run_depth = st.checkbox("Run Depth Estimation", value=False)
+run_depth = st.checkbox("Run Depth Estimation", value=False, disabled=is_inferring)
 
 if run_depth:
     if not st.session_state.model_loaded:
@@ -393,22 +316,25 @@ if run_depth:
 
                             depth = predict_depth(st.session_state.model, input_tensor, orig_size, args)
 
-                        args.output_dir = default_settings.get("output_dir", "./inference_results")
-                        from test_script.test_batch_video import save_results
-
+                        current_output_dir = default_settings.get("output_dir", "./inference_results")
                         saved_paths = []
+                        
+                        bit_depth = 10 if use_10bit else 8
 
                         if color_output:
-                            args.grayscale = False
-                            output_path = save_results(depth, origin_fps, args)
+                            output_path = save_video_ffmpeg(depth, origin_fps, str(input_path), current_output_dir, grayscale=False, bit_depth=bit_depth)
                             saved_paths.append(output_path)
                             st.success(f"Saved color: {vid.name}")
 
                         if grayscale:
-                            args.grayscale = True
-                            output_path = save_results(depth, origin_fps, args)
+                            output_path = save_video_ffmpeg(depth, origin_fps, str(input_path), current_output_dir, grayscale=True, bit_depth=bit_depth)
                             saved_paths.append(output_path)
                             st.success(f"Saved grayscale: {vid.name}")
+
+                        if save_16bit_png:
+                            output_path = save_depth_png_sequence(depth, str(input_path), current_output_dir)
+                            saved_paths.append(output_path)
+                            st.success(f"Saved 16-bit sequence: {vid.name}")
 
                         results.append({"name": vid.name, "output": saved_paths, "success": True})
 
@@ -487,36 +413,44 @@ if has_single or has_batch:
         st.info("Single video result ready")
 
         if st.button("Save Result", disabled=is_inferring):
+            results_to_show = []
             try:
-                from test_script.test_batch_video import save_results
-
-                args.output_dir = default_settings.get("output_dir", "./inference_results")
-                saved_paths = []
+                current_output_dir = default_settings.get("output_dir", "./inference_results")
+                input_path = str(Path("temp_uploads") / st.session_state.current_video)
+                
+                bit_depth = 10 if use_10bit else 8
 
                 if color_output:
-                    args.grayscale = False
-                    output_path = save_results(st.session_state.depth_result, st.session_state.origin_fps, args)
-                    saved_paths.append(output_path)
-                    st.success(f"Color saved: {output_path}")
-                    with open(output_path, "rb") as f:
-                        st.download_button(
-                            label="Download Color", data=f, file_name=os.path.basename(output_path), mime="video/mp4"
-                        )
+                    st.info("Generating color video...")
+                    output_path = save_video_ffmpeg(st.session_state.depth_result, st.session_state.origin_fps, input_path, current_output_dir, grayscale=False, bit_depth=bit_depth)
+                    results_to_show.append({"label": "Download Color", "path": output_path, "type": "video/mp4"})
 
                 if grayscale:
-                    args.grayscale = True
-                    output_path = save_results(st.session_state.depth_result, st.session_state.origin_fps, args)
-                    saved_paths.append(output_path)
-                    st.success(f"Grayscale saved: {output_path}")
-                    with open(output_path, "rb") as f:
-                        st.download_button(
-                            label="Download Grayscale",
-                            data=f,
-                            file_name=os.path.basename(output_path),
-                            mime="video/mp4",
-                        )
+                    st.info("Generating grayscale video...")
+                    output_path = save_video_ffmpeg(st.session_state.depth_result, st.session_state.origin_fps, input_path, current_output_dir, grayscale=True, bit_depth=bit_depth)
+                    results_to_show.append({"label": "Download Grayscale", "path": output_path, "type": "video/mp4"})
+                
+                if save_16bit_png:
+                    st.info("Generating 16-bit PNG sequence...")
+                    output_path = save_depth_png_sequence(st.session_state.depth_result, input_path, current_output_dir)
+                    st.success(f"16-bit PNG sequence saved in: {output_path}")
+
+                st.session_state.single_results = results_to_show
+                st.success("All requested files generated!")
 
             except Exception as e:
                 st.error(f"Error saving results: {str(e)}")
+
+        if "single_results" in st.session_state and st.session_state.single_results:
+            for res in st.session_state.single_results:
+                if os.path.exists(res["path"]):
+                    with open(res["path"], "rb") as f:
+                        st.download_button(
+                            label=res["label"],
+                            data=f,
+                            file_name=os.path.basename(res["path"]),
+                            mime=res["type"],
+                            key=f"dl_{res['label']}"
+                        )
 else:
     st.info("No depth result to save yet")
