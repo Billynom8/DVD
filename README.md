@@ -29,9 +29,10 @@ _**[Hongfei Zhang](https://x.com/hongfeizhang0xF)<sup>1*</sup>, [Harold H. Chen]
 
 Welcome to the official repository for **DVD: Deterministic Video Depth**! 
 
-While recent generative foundation models have shown remarkable potential in zero-shot depth estimation, they inherently suffer from the *ambiguity-hallucination dilemma* due to their stochastic sampling process. **DVD** fundamentally shifts this paradigm. We present the first deterministic framework that elegantly adapts pre-trained Video Diffusion Models (like WanV2.1) into single-pass depth regressors. 
+While current video depth estimation methods face a strict *ambiguity-hallucination dilemma*—where *discriminative models* suffer from semantic ambiguity and poor open-world generalization, and *generative models* struggle with stochastic hallucinations and temporal flickering—**DVD** fundamentally breaks this trade-off. 
 
-By cleanly stripping away generative stochasticity, DVD unites the semantic richness of generative foundation models with the structural stability of discriminative regressors.
+We present the first deterministic framework that elegantly adapts pre-trained Video Diffusion Models (like WanV2.1) into single-pass depth regressors.
+By cleanly stripping away generative stochasticity, DVD unites the profound semantic priors of generative models with the structural stability of discriminative regressors.
 
 ### ✨ Key Highlights
 
@@ -51,6 +52,17 @@ By cleanly stripping away generative stochasticity, DVD unites the semantic rich
 - **[2026.03.11]** 🤗 Pre-trained weights released on [Hugging Face](https://huggingface.co/FayeHongfeiZhang/DVD/tree/main).
 - **[2026.03.10]** 🔥 Repository initialized and training & inference code released.
 
+
+---
+
+## 💿 Pre-trained Models
+
+We provide the official pre-trained weights for **DVD**, designed for robust, zero-shot relative video depth estimation.
+
+| Model Version | Backbone | Description | Download |
+| :--- | :--- | :--- | :---: |
+| **DVD v1.0** | Wan2.1 | Our default model achieving SoTA performance with unprecedented structural fidelity. | [🤗 Hugging Face](https://huggingface.co/FayeHongfeiZhang/DVD/tree/main) |
+| **DVD v1.1** | - | *Performance optimizations & refined temporal consistency.* | *⏳ Coming soon* |
 
 ---
 
@@ -129,6 +141,20 @@ If you encounter issues during installation, it may be caused by the packages we
 
 ---
 
+## 🤗 Gradio Demo
+
+We provide an interactive Gradio interface for you to easily test DVD on your own videos without writing any code.
+
+**1. Online Demo:** The easiest way to experience DVD! Try it out directly on our [Hugging Face](https://huggingface.co/spaces/haodongli/DVD).
+> **⚠️ Note on Online Demo:** Due to GPU resource constraints on Hugging Face, the online web demo is currently limited to processing videos of up to **5 seconds**. To process longer videos, we highly recommend running the local deployment below!
+
+**2. Local Deployment:**
+If you prefer to run the UI locally, ensure your environment is set up and simply execute:
+```bash
+python test_script/app.py
+```
+
+---
 
 ## 🕹️ Inference
 
@@ -139,17 +165,6 @@ bash infer_bash/openworld.sh
 ```
 
 You may also put more videos in the `demo/` directory and alter the video path in the bash to get more results!
-
----
-
-### 🤗 Gradio Demo
-
-1. Run the demo online: [Hugging Face Space](https://huggingface.co/spaces/haodongli/DVD)
-2. Run it locally:
-
-```
-python test_script/app.py
-```
 
 ---
 
