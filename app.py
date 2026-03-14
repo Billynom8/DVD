@@ -67,6 +67,11 @@ early_downsample = st.sidebar.checkbox(
     value=True,
     help="Downsample video during loading instead of after. Reduces RAM usage.",
 )
+skip_upscale = st.sidebar.checkbox(
+    "Skip Upscale (keep low-res output)",
+    value=True,
+    help="Skip upscaling at the end. Output will be at inference resolution.",
+)
 window_size = st.sidebar.number_input("Window Size", value=81, min_value=9, step=9)
 overlap = st.sidebar.number_input("Overlap", value=9, min_value=0)
 height = st.sidebar.number_input("Height", value=480, step=16)
@@ -88,6 +93,7 @@ args.height = height
 args.width = width
 args.grayscale = grayscale
 args.output_dir = output_dir
+args.skip_upscale = skip_upscale
 
 
 st.header("Step 1: Load Model")
@@ -132,7 +138,8 @@ if input_video:
         st.session_state.depth_result = None
 
     st.success(f"Video loaded: {input_video.name}")
-    st.video(input_video)
+    video_bytes = input_video.getvalue()
+    st.video(video_bytes, format="video/mp4")
 
     args.input_video = str(input_path)
 
@@ -150,8 +157,6 @@ if run_depth:
         if st.button("Generate Depth", type="primary"):
             with st.spinner("Processing video... this may take a while"):
                 try:
-                    from test_script.test_batch_video import predict_depth
-
                     if early_downsample:
                         input_tensor, origin_fps, orig_size = read_video_early_downsample(
                             args.input_video, args.height, args.width
@@ -162,7 +167,17 @@ if run_depth:
 
                         input_tensor, orig_size, origin_fps = load_video_data(args)
 
-                    depth = predict_depth(st.session_state.model, input_tensor, orig_size, args)
+                    if skip_upscale:
+                        from test_script.test_batch_video import generate_depth_sliced
+
+                        depth = generate_depth_sliced(
+                            st.session_state.model, input_tensor, args.window_size, args.overlap
+                        )[0]
+                        print(f"Depth (no upscale): {depth.shape}, range {depth.min()} - {depth.max()}")
+                    else:
+                        from test_script.test_batch_video import predict_depth
+
+                        depth = predict_depth(st.session_state.model, input_tensor, orig_size, args)
 
                     st.session_state.depth_result = depth
                     st.session_state.origin_fps = origin_fps
@@ -174,15 +189,7 @@ if st.session_state.depth_result is not None:
     st.info("Depth estimation result ready")
 
 
-st.header("Step 4: Upscale (Optional)")
-upscale_enabled = st.checkbox("Enable Upscaling", value=False)
-
-if upscale_enabled:
-    st.info("Upscaling section - add your upscaling code here")
-    # TODO: Add upscaling logic
-
-
-st.header("Step 5: Save Results")
+st.header("Step 4: Save Results")
 
 if st.session_state.depth_result is not None:
     if st.button("Save Results"):
