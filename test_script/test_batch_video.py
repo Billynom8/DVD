@@ -139,7 +139,8 @@ def predict_depth(model, input_tensor, orig_size, args):
     """Runs depth prediction and post-processes the output to original size."""
     depth = generate_depth_sliced(model, input_tensor, args.window_size, args.overlap)[0]
     depth_np = depth.cpu().numpy()
-    depth_np = resize_depth_back(depth_np, orig_size)
+    if not getattr(args, 'skip_upscale', False):
+        depth_np = resize_depth_back(depth_np, orig_size)
     return depth_np
 
 
@@ -157,6 +158,7 @@ def parse_args():
     parser.add_argument('--color', action='store_true', help="Output colorized depth video")
     parser.add_argument('--use_10bit', action='store_true', help="Elevates video output to 10-bit HEVC")
     parser.add_argument('--save_16bit_png', action='store_true', help="Save as 16-bit PNG sequence")
+    parser.add_argument('--skip_upscale', action='store_true', help="Skip upscaling the output")
     return parser.parse_args()
 
 
