@@ -100,6 +100,10 @@ uv pip install sageattention
 
 ## ✅ Final Notes
 
-- Inference scripts are located in `infer_bash/`.
-- Try running `bash infer_bash/openworld.sh` to verify your installation.
-- If any step fails, check `install_log.txt` (if using the 1-click installer) or verify your CUDA environment.
+- **Streamlit GUI:** You can launch the interactive web interface simply by running:
+  ```bash
+  run_app.bat
+  ```
+- **Inference Scripts:** Command-line batch files for Windows are located in `infer_bash/`.
+- **Verify Installation:** Try running `infer_bash\openworld.bat` or launching the GUI to ensure everything is working.
+- **Troubleshooting:** If any step fails, check `_install/install_log.txt` (if using the 1-click installer) or verify your CUDA environment.
