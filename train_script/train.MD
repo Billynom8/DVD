@@ -28,7 +28,7 @@ vkitti
 ├── Scene02
 ├── ...
 
-hypersim/
+hypersim
 ├── test
 ├── train
 └── val
