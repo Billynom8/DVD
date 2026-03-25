@@ -73,6 +73,10 @@ window_size = st.sidebar.number_input(
 overlap = st.sidebar.number_input(
     "Overlap", value=default_settings.get("overlap", 9), min_value=0, disabled=st.session_state.is_inferring
 )
+denoise_step = st.sidebar.slider(
+    "Denoise Steps", value=default_settings.get("denoise_step", 1), min_value=1, max_value=50, step=1, 
+    disabled=st.session_state.is_inferring, help="Number of diffusion denoising steps."
+)
 width = st.sidebar.number_input("Width", value=default_settings.get("width", 640), step=16, disabled=st.session_state.is_inferring)
 
 st.sidebar.subheader("Output Options")
@@ -141,6 +145,7 @@ if st.sidebar.button("Save Settings", disabled=st.session_state.is_inferring):
         "skip_upscale": skip_upscale,
         "window_size": window_size,
         "overlap": overlap,
+        "denoise_step": denoise_step,
         "width": width,
         "grayscale": grayscale,
         "color_output": color_output,
@@ -163,6 +168,7 @@ args.ckpt = ckpt_dir
 args.model_config = model_config_path
 args.window_size = window_size
 args.overlap = overlap
+args.denoise_step = denoise_step
 args.height = 480
 args.width = width
 args.grayscale = grayscale

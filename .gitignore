@@ -32,3 +32,4 @@ infer_bash/video_test.sh
 ckpt/test/
 !demo/robot_navi.mp4
 !demo/drone.mp4
+app_config.json
