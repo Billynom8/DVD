@@ -18,7 +18,7 @@ Before starting, it is helpful to understand the core scripts involved in the tr
 
 
 
-As mentioned in our paper, DVD requires only **367K frames** to unlock generative priors. We mainly [Hypersim](https://github.com/apple/ml-hypersim) (image), [TartanAir](https://theairlab.org/tartanair-dataset/) (video) and [Virtual KITTI](https://europe.naverlabs.com/proxy-virtual-worlds-vkitti-2/) (video,image) for training.
+As mentioned in our paper, DVD requires only **367K frames** to unlock generative priors. We mainly [Hypersim](https://github.com/apple/ml-hypersim) (image), [TartanAir](https://theairlab.org/tartanair-dataset/) (video) and [Virtual KITTI](https://europe.naverlabs.com/proxy-virtual-worlds-vkitti-2/) (video,image) for training. For detailed preprocessing instructions, please refer to [Lotus](https://github.com/EnVision-Research/Lotus).
 
 Please download the raw datasets from their official websites and organize them as follows:
 
@@ -28,7 +28,7 @@ vkitti
 ├── Scene02
 ├── ...
 
-hypersim/
+hypersim
 ├── test
 ├── train
 └── val
@@ -77,7 +77,7 @@ You might also alter the files under `train_config/accelerate_config` to change 
 
 
 ---
-## 4. 📊  Checkpoints
+## 5. 📊  Checkpoints
 
 
 ### Resuming from a Checkpoint

@@ -250,7 +250,7 @@ If you find our work useful in your research, please consider citing:
 ```bib
 @article{zhang2026dvd,
   title={DVD: Deterministic Video Depth Estimation with Generative Priors},
-  author={Zhang, Hongfei and Chen, Harold Haodong and Liao, Chenfei and He, Jing and Zhang, Zixin and Li, Haodong and Liang, Yihao and Chen, Kanghao and Ren, Bin and Zheng, Xu and Yang, Shuai and Zhou, Kun and Li, Yinchuan and Sebe, Nicu and Chen, Ying-Cong},
+  author={Zhang, Hongfei and Chen, Harold Haodong and Liao, Chenfei and He, Jing and Zhang, Zixin and Li, Haodong and Liang, Yihao and Chen, Kanghao and Ren, Bin and Zheng, Xu and others},
   journal={arXiv preprint arXiv:2603.12250},
   year={2026}
 }
