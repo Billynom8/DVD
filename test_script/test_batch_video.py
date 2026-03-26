@@ -25,7 +25,7 @@ from examples.wanvideo.model_training.WanTrainingModule import WanTrainingModule
 # =============================
 # Core Inference
 # =============================
-def generate_depth_sliced(model, input_rgb, window_size=45, overlap=9, scale_only=False, num_inference_steps=None):
+def generate_depth_sliced(model, input_rgb, window_size=45, overlap=9, scale_only=False):
     B, T, C, H, W = input_rgb.shape
     depth_windows = get_window_index(T, window_size, overlap)
     print(f"depth_windows {depth_windows}")
@@ -58,7 +58,6 @@ def generate_depth_sliced(model, input_rgb, window_size=45, overlap=9, scale_onl
             seed=0,
             tiled=False,
             denoise_step=model.args.denoise_step,
-            **({"num_inference_steps": num_inference_steps} if num_inference_steps is not None else {})
         )
         # Drop the padded frames and ensure it's a tensor
         depth_slice = outputs['depth'][:, :origin_T]
@@ -138,8 +137,7 @@ def load_video_data(args):
 
 def predict_depth(model, input_tensor, orig_size, args):
     """Runs depth prediction and post-processes the output to original size."""
-    num_inference_steps = getattr(args, 'num_inference_steps', None)
-    depth = generate_depth_sliced(model, input_tensor, args.window_size, args.overlap, num_inference_steps=num_inference_steps)[0]
+    depth = generate_depth_sliced(model, input_tensor, args.window_size, args.overlap)[0]
     depth_np = depth.cpu().numpy()
     if not getattr(args, 'skip_upscale', False):
         depth_np = resize_depth_back(depth_np, orig_size)
@@ -156,7 +154,6 @@ def parse_args():
     parser.add_argument('--height', type=int, default=480)
     parser.add_argument('--width', type=int, default=640)
     parser.add_argument("--overlap", type=int, default=9)
-    parser.add_argument("--num_inference_steps", type=int, default=None, help="Inference steps for diffusion (overrides model config)")
     parser.add_argument('--grayscale', action='store_true', help="Output grayscale depth video")
     parser.add_argument('--color', action='store_true', help="Output colorized depth video")
     parser.add_argument('--use_10bit', action='store_true', help="Elevates video output to 10-bit HEVC")
