@@ -14,13 +14,14 @@ sys.path.append(str(Path(__file__).parent.parent))
 
 from core.io import read_video, save_video_ffmpeg, save_depth_png_sequence
 from core.utils import (
-    compute_scale_and_shift, 
-    resize_for_training_scale, 
-    resize_depth_back, 
-    pad_time_mod4, 
-    get_window_index
+    compute_scale_and_shift,
+    resize_for_training_scale,
+    resize_depth_back,
+    pad_time_mod4,
+    get_window_index,
 )
 from examples.wanvideo.model_training.WanTrainingModule import WanTrainingModule
+
 
 # =============================
 # Core Inference
@@ -51,8 +52,7 @@ def generate_depth_sliced(model, input_rgb, window_size=45, overlap=9, scale_onl
             batch_size=B,
             input_image=_input_rgb_slice[:, 0],
             extra_images=_input_rgb_slice,
-            extra_image_frame_index=torch.ones(
-                [B, _input_frame]).to(model.pipe.device),
+            extra_image_frame_index=torch.ones([B, _input_frame]).to(model.pipe.device),
             input_video=_input_rgb_slice,
             cfg_scale=1,
             seed=0,
@@ -60,7 +60,7 @@ def generate_depth_sliced(model, input_rgb, window_size=45, overlap=9, scale_onl
             denoise_step=model.args.denoise_step,
         )
         # Drop the padded frames and ensure it's a tensor
-        depth_slice = outputs['depth'][:, :origin_T]
+        depth_slice = outputs["depth"][:, :origin_T]
         if isinstance(depth_slice, np.ndarray):
             depth_slice = torch.from_numpy(depth_slice)
         depth_res_list.append(depth_slice)
@@ -139,7 +139,7 @@ def predict_depth(model, input_tensor, orig_size, args):
     """Runs depth prediction and post-processes the output to original size."""
     depth = generate_depth_sliced(model, input_tensor, args.window_size, args.overlap)[0]
     depth_np = depth.cpu().numpy()
-    if not getattr(args, 'skip_upscale', False):
+    if not getattr(args, "skip_upscale", False):
         depth_np = resize_depth_back(depth_np, orig_size)
     return depth_np
 
@@ -149,16 +149,16 @@ def parse_args():
     parser.add_argument("--ckpt", type=str, required=True)
     parser.add_argument("--input_video", type=str, required=True)
     parser.add_argument("--output_dir", type=str, default="./inference_results")
-    parser.add_argument('--model_config', default='ckpt/model_config.yaml')
+    parser.add_argument("--model_config", default="ckpt/model_config.yaml")
     parser.add_argument("--window_size", type=int, default=81)
-    parser.add_argument('--height', type=int, default=480)
-    parser.add_argument('--width', type=int, default=640)
+    parser.add_argument("--height", type=int, default=480)
+    parser.add_argument("--width", type=int, default=640)
     parser.add_argument("--overlap", type=int, default=9)
-    parser.add_argument('--grayscale', action='store_true', help="Output grayscale depth video")
-    parser.add_argument('--color', action='store_true', help="Output colorized depth video")
-    parser.add_argument('--use_10bit', action='store_true', help="Elevates video output to 10-bit HEVC")
-    parser.add_argument('--save_16bit_png', action='store_true', help="Save as 16-bit PNG sequence")
-    parser.add_argument('--skip_upscale', action='store_true', help="Skip upscaling the output")
+    parser.add_argument("--grayscale", action="store_true", help="Output grayscale depth video")
+    parser.add_argument("--color", action="store_true", help="Output colorized depth video")
+    parser.add_argument("--use_10bit", action="store_true", help="Elevates video output to 10-bit HEVC")
+    parser.add_argument("--save_16bit_png", action="store_true", help="Save as 16-bit PNG sequence")
+    parser.add_argument("--skip_upscale", action="store_true", help="Skip upscaling the output")
     return parser.parse_args()
 
 
@@ -174,7 +174,7 @@ def main():
 
     if args.grayscale:
         save_video_ffmpeg(depth, origin_fps, args.input_video, args.output_dir, grayscale=True, bit_depth=bit_depth)
-    
+
     if args.color:
         save_video_ffmpeg(depth, origin_fps, args.input_video, args.output_dir, grayscale=False, bit_depth=bit_depth)
 
