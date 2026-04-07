@@ -1,7 +1,7 @@
 <h2 align="center"> DVD: Deterministic Video Depth Estimation with Generative Priors</h2>
 <div align="center">
 
-_**[Hongfei Zhang](https://x.com/hongfeizhang0xF)<sup>1*</sup>, [Harold H. Chen](https://haroldchen19.github.io/)<sup>1,2*</sup>, [Chenfei Liao](https://chenfei-liao.github.io/)<sup>1*</sup>, [Jing He](https://jingheya.github.io/)<sup>1*</sup>, [Zixin Zhang](https://scholar.google.com/citations?hl=en&user=BbZ0mwoAAAAJ)<sup>1</sup>, [Haodong Li](https://haodong2000.github.io/)<sup>3</sup>, [Yihao Liang](https://scholar.google.com/citations?user=rlKejNUAAAAJ&hl=en)<sup>4</sup>,
+_**[Hongfei Zhang](https://soyouthinkyoucantell.github.io/)<sup>1*</sup>, [Harold H. Chen](https://haroldchen19.github.io/)<sup>1,2*</sup>, [Chenfei Liao](https://chenfei-liao.github.io/)<sup>1*</sup>, [Jing He](https://jingheya.github.io/)<sup>1*</sup>, [Zixin Zhang](https://scholar.google.com/citations?hl=en&user=BbZ0mwoAAAAJ)<sup>1</sup>, [Haodong Li](https://haodong2000.github.io/)<sup>3</sup>, [Yihao Liang](https://scholar.google.com/citations?user=rlKejNUAAAAJ&hl=en)<sup>4</sup>,
 <br>
 [Kanghao Chen](https://khao123.github.io/)<sup>1</sup>, [Bin Ren](https://amazingren.github.io/)<sup>5</sup>, [Xu Zheng](https://zhengxujosh.github.io/)<sup>1</sup>, [Shuai Yang](https://andysonys.github.io/)<sup>1</sup>, [Kun Zhou](https://redrock303.github.io/)<sup>6</sup>, [Yinchuan Li](https://scholar.google.com/citations?user=M6YfuCTSaKsC&hl=en)<sup>7</sup>, [Nicu Sebe](https://disi.unitn.it/~sebe/)<sup>8</sup>,
 <br>
@@ -46,6 +46,8 @@ By cleanly stripping away generative stochasticity, DVD unites the profound sema
 ---
 
 ## 📢 News
+- **[2026.04.07]** 🔥 DVD v1.1 is out! It's now more robust to reflective surfaces and better temporal consistency!
+
 - **[2026.03.14]** 🤗 Hugging Face Gradio demos ([Online](https://huggingface.co/spaces/haodongli/DVD) and [Local](https://github.com/EnVision-Research/DVD?tab=readme-ov-file#-gradio-demo)) released.
 - **[2026.03.13]** 📄 Paper is available on [arXiv](https://arxiv.org/abs/2603.12250).
 - **[2026.03.12]** 🌐 [Project page](https://dvd-project.github.io/) is live.
@@ -64,7 +66,7 @@ We provide the official pre-trained weights for **DVD**, designed for robust, ze
 | Model Version | Backbone | Description | Download |
 | :--- | :--- | :--- | :---: |
 | **DVD v1.0** | Wan2.1 | Our default model achieving SoTA performance with unprecedented structural fidelity. | [🤗 Hugging Face](https://huggingface.co/FayeHongfeiZhang/DVD/tree/main) |
-| **DVD v1.1** | - | *Performance optimizations & refined temporal consistency.* | *⏳ Coming soon* |
+| **DVD v1.1** | Wan2.1 | Performance optimizations & refined temporal consistency. Robust to reflective surface! |[🤗 Hugging Face](https://huggingface.co/FayeHongfeiZhang/DVD/blob/main/dvd_1.1.safetensors) |
 
 ---
 
