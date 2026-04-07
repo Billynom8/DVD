@@ -46,6 +46,8 @@ By cleanly stripping away generative stochasticity, DVD unites the profound sema
 ---
 
 ## 📢 News
+- **[2026.04.07]** 🔥 DVD v1.1 is out! It's now more robust to reflective surfaces and better temporal consistency!
+
 - **[2026.03.14]** 🤗 Hugging Face Gradio demos ([Online](https://huggingface.co/spaces/haodongli/DVD) and [Local](https://github.com/EnVision-Research/DVD?tab=readme-ov-file#-gradio-demo)) released.
 - **[2026.03.13]** 📄 Paper is available on [arXiv](https://arxiv.org/abs/2603.12250).
 - **[2026.03.12]** 🌐 [Project page](https://dvd-project.github.io/) is live.
