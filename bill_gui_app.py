@@ -2,6 +2,7 @@ import streamlit as st
 import os
 import sys
 import torch
+import numpy as np
 from pathlib import Path
 
 # Add core to path if needed
@@ -301,10 +302,15 @@ else:
             # Show video info only for single mode
             video_info = get_video_info(st.session_state.input_paths[0])
             if video_info:
+                orig_w, orig_h = video_info["width"], video_info["height"]
+                ratio = max(480 / orig_h, width / orig_w)
+                new_h = int(np.ceil(orig_h * ratio))
+                new_h_aligned = (new_h + 15) // 16 * 16
                 num_segments, final_chunk = calculate_segments(video_info["total_frames"], window_size, overlap)
                 st.info(
-                    f"**Video Info:** {video_info['width']}x{video_info['height']} | "
+                    f"**Video Info:** {orig_w}x{orig_h} | "
                     f"{video_info['total_frames']} frames | {video_info['fps']:.2f} fps | "
+                    f"**Downscaled:** {width}x{new_h_aligned} | "
                     f"**Segments:** {num_segments}"
                 )
     else:
