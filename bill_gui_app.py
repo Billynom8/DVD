@@ -41,18 +41,22 @@ if "single_results" not in st.session_state:
 st.title("Depth Estimation Pipeline")
 
 if st.session_state.model_loaded and st.session_state.model is not None:
-    st.success(f"Model loaded and ready (VRAM in use)")
+    st.success("Model loaded and ready (VRAM in use)")
 
 is_inferring = st.session_state.is_inferring
+
 
 def start_inference():
     st.session_state.is_inferring = True
     st.session_state.stop_requested = False
 
+
 st.sidebar.header("Configuration")
 
 ckpt_dir = st.sidebar.text_input("Checkpoint Directory", value="./ckpt", disabled=st.session_state.is_inferring)
-model_config_path = st.sidebar.text_input("Model Config", value="ckpt/model_config.yaml", disabled=st.session_state.is_inferring)
+model_config_path = st.sidebar.text_input(
+    "Model Config", value="ckpt/model_config.yaml", disabled=st.session_state.is_inferring
+)
 
 st.sidebar.subheader("Processing Options")
 early_downsample = st.sidebar.checkbox(
@@ -68,12 +72,19 @@ skip_upscale = st.sidebar.checkbox(
     help="Skip upscaling at the end. Output will be at inference resolution.",
 )
 window_size = st.sidebar.number_input(
-    "Window Size", value=default_settings.get("window_size", 81), min_value=9, step=9, disabled=st.session_state.is_inferring
+    "Window Size",
+    value=default_settings.get("window_size", 81),
+    min_value=9,
+    max_value=81,
+    step=9,
+    disabled=st.session_state.is_inferring,
 )
 overlap = st.sidebar.number_input(
     "Overlap", value=default_settings.get("overlap", 9), min_value=0, disabled=st.session_state.is_inferring
 )
-width = st.sidebar.number_input("Width", value=default_settings.get("width", 640), step=16, disabled=st.session_state.is_inferring)
+width = st.sidebar.number_input(
+    "Width", value=default_settings.get("width", 640), step=16, disabled=st.session_state.is_inferring
+)
 
 st.sidebar.subheader("Output Options")
 grayscale = st.sidebar.checkbox(
@@ -83,8 +94,10 @@ color_output = st.sidebar.checkbox(
     "Color Output", value=default_settings.get("color_output", True), disabled=st.session_state.is_inferring
 )
 use_10bit = st.sidebar.checkbox(
-    "Use 10-bit HEVC", value=default_settings.get("use_10bit", False), disabled=st.session_state.is_inferring,
-    help="Elevates Grayscale and Color video bit rate to 10-bit HEVC."
+    "Use 10-bit HEVC",
+    value=default_settings.get("use_10bit", False),
+    disabled=st.session_state.is_inferring,
+    help="Elevates Grayscale and Color video bit rate to 10-bit HEVC.",
 )
 save_16bit_png = st.sidebar.checkbox(
     "Save 16-bit PNG seq", value=default_settings.get("save_16bit_png", False), disabled=st.session_state.is_inferring
@@ -97,31 +110,32 @@ st.sidebar.subheader("File & Folder Settings")
 
 # 1. Source Folder
 source_folder = st.sidebar.text_input(
-    "Local Source Folder", 
-    value=default_settings.get("source_folder", ""), 
+    "Local Source Folder",
+    value=default_settings.get("source_folder", ""),
     help="Path to a folder containing videos to process.",
-    disabled=st.session_state.is_inferring
+    disabled=st.session_state.is_inferring,
 )
 
 # 2. Output Directory
 output_dir = st.sidebar.text_input(
-    "Output Directory", 
+    "Output Directory",
     value=default_settings.get("output_dir", "./inference_results"),
-    disabled=st.session_state.is_inferring
+    disabled=st.session_state.is_inferring,
 )
 
 resume_mode = st.sidebar.checkbox(
-    "Resume", 
-    value=default_settings.get("resume_mode", False), 
+    "Resume",
+    value=default_settings.get("resume_mode", False),
     help="Moves finished videos to a 'finished' subfolder.",
-    disabled=st.session_state.is_inferring
+    disabled=st.session_state.is_inferring,
 )
 
 if st.sidebar.button("Scan Folder", disabled=st.session_state.is_inferring, use_container_width=True):
     if os.path.exists(source_folder):
         extensions = [".mp4", ".avi", ".mov", ".mkv", ".webm"]
         folder_paths = [
-            str(Path(source_folder) / f) for f in os.listdir(source_folder) 
+            str(Path(source_folder) / f)
+            for f in os.listdir(source_folder)
             if any(f.lower().endswith(ext) for ext in extensions)
         ]
         if folder_paths:
@@ -255,7 +269,7 @@ else:
     if input_videos:
         current_names = [os.path.basename(p) for p in st.session_state.input_paths]
         new_names = [vid.name for vid in input_videos]
-        
+
         if set(current_names) != set(new_names):
             temp_dir = Path("temp_uploads")
             temp_dir.mkdir(exist_ok=True)
@@ -265,7 +279,7 @@ else:
                 with open(input_path, "wb") as f:
                     f.write(vid.getbuffer())
                 new_paths.append(str(input_path))
-            
+
             st.session_state.input_paths = new_paths
             st.session_state.depth_result = None
             st.session_state.batch_results = None
@@ -283,7 +297,7 @@ else:
         else:
             st.success(f"🎯 **Single Video:** {os.path.basename(st.session_state.input_paths[0])}")
             st.video(st.session_state.input_paths[0])
-            
+
             # Show video info only for single mode
             video_info = get_video_info(st.session_state.input_paths[0])
             if video_info:
@@ -311,7 +325,12 @@ if run_depth:
         st.error("Please upload video(s) first")
     else:
         if batch_mode:
-            if st.button(f"Generate Depth ({len(input_paths)} videos)", type="primary", disabled=st.session_state.is_inferring, on_click=start_inference):
+            if st.button(
+                f"Generate Depth ({len(input_paths)} videos)",
+                type="primary",
+                disabled=st.session_state.is_inferring,
+                on_click=start_inference,
+            ):
                 try:
                     results = []
                     progress_bar = st.progress(0)
@@ -329,10 +348,12 @@ if run_depth:
                                 input_tensor, origin_fps, orig_size = read_video_early_downsample(input_path, width)
                             else:
                                 from test_script.test_batch_video import read_video, resize_for_training_scale
+
                                 input_tensor, origin_fps = read_video(input_path)
                                 input_tensor, orig_size = resize_for_training_scale(input_tensor, 480, width)
 
                             from test_script.test_batch_video import predict_depth
+
                             depth = predict_depth(st.session_state.model, input_tensor, orig_size, args)
 
                             current_output_dir = output_dir
@@ -340,22 +361,37 @@ if run_depth:
                             bit_depth = 10 if use_10bit else 8
 
                             if color_output:
-                                out = save_video_ffmpeg(depth, origin_fps, input_path, current_output_dir, grayscale=False, bit_depth=bit_depth)
+                                out = save_video_ffmpeg(
+                                    depth,
+                                    origin_fps,
+                                    input_path,
+                                    current_output_dir,
+                                    grayscale=False,
+                                    bit_depth=bit_depth,
+                                )
                                 saved_paths.append(out)
                             if grayscale:
-                                out = save_video_ffmpeg(depth, origin_fps, input_path, current_output_dir, grayscale=True, bit_depth=bit_depth)
+                                out = save_video_ffmpeg(
+                                    depth,
+                                    origin_fps,
+                                    input_path,
+                                    current_output_dir,
+                                    grayscale=True,
+                                    bit_depth=bit_depth,
+                                )
                                 saved_paths.append(out)
                             if save_16bit_png:
                                 out = save_depth_png_sequence(depth, input_path, current_output_dir)
                                 saved_paths.append(out)
 
                             results.append({"name": vid_name, "output": saved_paths, "success": True})
-                            
+
                             # Resume mode: Move original file to 'finished' folder
                             if resume_mode:
                                 finished_dir = Path(os.path.dirname(input_path)) / "finished"
                                 finished_dir.mkdir(exist_ok=True)
                                 import shutil
+
                                 shutil.move(input_path, finished_dir / vid_name)
                                 st.success(f"Moved {vid_name} to finished folder.")
 
@@ -373,7 +409,9 @@ if run_depth:
                     st.rerun()
 
         else:
-            if st.button("Generate Depth", type="primary", disabled=st.session_state.is_inferring, on_click=start_inference):
+            if st.button(
+                "Generate Depth", type="primary", disabled=st.session_state.is_inferring, on_click=start_inference
+            ):
                 try:
                     input_path = input_paths[0]
                     with st.spinner("Processing video... this may take a while"):
@@ -381,10 +419,12 @@ if run_depth:
                             input_tensor, origin_fps, orig_size = read_video_early_downsample(input_path, width)
                         else:
                             from test_script.test_batch_video import read_video, resize_for_training_scale
+
                             input_tensor, origin_fps = read_video(input_path)
                             input_tensor, orig_size = resize_for_training_scale(input_tensor, 480, width)
 
                         from test_script.test_batch_video import predict_depth
+
                         depth = predict_depth(st.session_state.model, input_tensor, orig_size, args)
 
                         if not st.session_state.stop_requested:
@@ -420,14 +460,28 @@ if has_single or has_batch:
 
                 if color_output:
                     st.info("Generating color video...")
-                    out = save_video_ffmpeg(st.session_state.depth_result, st.session_state.origin_fps, input_path, output_dir, grayscale=False, bit_depth=bit_depth)
+                    out = save_video_ffmpeg(
+                        st.session_state.depth_result,
+                        st.session_state.origin_fps,
+                        input_path,
+                        output_dir,
+                        grayscale=False,
+                        bit_depth=bit_depth,
+                    )
                     results_to_show.append({"label": "Download Color", "path": out, "type": "video/mp4"})
 
                 if grayscale:
                     st.info("Generating grayscale video...")
-                    out = save_video_ffmpeg(st.session_state.depth_result, st.session_state.origin_fps, input_path, output_dir, grayscale=True, bit_depth=bit_depth)
+                    out = save_video_ffmpeg(
+                        st.session_state.depth_result,
+                        st.session_state.origin_fps,
+                        input_path,
+                        output_dir,
+                        grayscale=True,
+                        bit_depth=bit_depth,
+                    )
                     results_to_show.append({"label": "Download Grayscale", "path": out, "type": "video/mp4"})
-                
+
                 if save_16bit_png:
                     st.info("Generating 16-bit PNG sequence...")
                     out = save_depth_png_sequence(st.session_state.depth_result, input_path, output_dir)
@@ -447,7 +501,7 @@ if has_single or has_batch:
                             data=f,
                             file_name=os.path.basename(res["path"]),
                             mime=res["type"],
-                            key=f"dl_{res['label']}"
+                            key=f"dl_{res['label']}",
                         )
 else:
     st.info("No depth result to save yet")
