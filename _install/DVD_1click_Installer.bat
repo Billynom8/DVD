@@ -179,7 +179,7 @@ if /i "!get_weights!"=="Y" (
         uv run hf auth login
     )
 
-    call :log "[INFO] Downloading DVD v1.0 Models from FayeHongfeiZhang/DVD..."
+    call :log "[INFO] Downloading DVD v1.1 Models from FayeHongfeiZhang/DVD..."
     uv run hf download FayeHongfeiZhang/DVD --revision main --local-dir ckpt
     
     call :log "[SUCCESS] Weights downloaded to /ckpt."
