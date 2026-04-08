@@ -106,7 +106,7 @@ def generate_depth_sliced(model, input_rgb, window_size=45, overlap=9, scale_onl
     return depth_list_aligned[:, :T]
 
 
-def load_model(ckpt_dir, yaml_args):
+def load_model(ckpt_dir, yaml_args, model_name="dvd_1.1.safetensors"):
     """Initializes and loads the model checkpoint."""
     accelerator = Accelerator()
     model = WanTrainingModule(
@@ -119,7 +119,7 @@ def load_model(ckpt_dir, yaml_args):
         args=yaml_args,
     )
 
-    ckpt_path = os.path.join(ckpt_dir, "model.safetensors")
+    ckpt_path = os.path.join(ckpt_dir, model_name)
     state_dict = load_file(ckpt_path, device="cpu")
     dit_state_dict = {k.replace("pipe.dit.", ""): v for k, v in state_dict.items() if "pipe.dit." in k}
     model.pipe.dit.load_state_dict(dit_state_dict, strict=True)
@@ -159,6 +159,9 @@ def parse_args():
     parser.add_argument("--use_10bit", action="store_true", help="Elevates video output to 10-bit HEVC")
     parser.add_argument("--save_16bit_png", action="store_true", help="Save as 16-bit PNG sequence")
     parser.add_argument("--skip_upscale", action="store_true", help="Skip upscaling the output")
+    parser.add_argument(
+        "--model_name", type=str, default="dvd_1.1.safetensors", help="Name of the model safetensors file"
+    )
     return parser.parse_args()
 
 
@@ -166,7 +169,7 @@ def main():
     args = parse_args()
     yaml_args = OmegaConf.load(args.model_config)
 
-    model = load_model(args.ckpt, yaml_args)
+    model = load_model(args.ckpt, yaml_args, model_name=args.model_name)
     input_tensor, orig_size, origin_fps = load_video_data(args)
     depth = predict_depth(model, input_tensor, orig_size, args)
 

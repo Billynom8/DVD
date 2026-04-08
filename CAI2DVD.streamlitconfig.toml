@@ -1,1 +1,0 @@
-[server]\nheadless = true\nenableCORS = false\n\n[browser]\ngatherUsageStats = false

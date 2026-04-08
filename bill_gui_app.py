@@ -55,6 +55,23 @@ def start_inference():
 st.sidebar.header("Configuration")
 
 ckpt_dir = st.sidebar.text_input("Checkpoint Directory", value="./ckpt", disabled=st.session_state.is_inferring)
+
+# Model Selection
+available_models = ["dvd_1.1.safetensors"]
+if os.path.exists(ckpt_dir):
+    available_models = [f for f in os.listdir(ckpt_dir) if f.endswith(".safetensors")]
+    if not available_models:
+        available_models = ["dvd_1.1.safetensors"]
+
+selected_model = st.sidebar.selectbox(
+    "Select Model",
+    options=available_models,
+    index=available_models.index(default_settings.get("selected_model", "dvd_1.1.safetensors"))
+    if default_settings.get("selected_model", "dvd_1.1.safetensors") in available_models
+    else 0,
+    disabled=st.session_state.is_inferring,
+)
+
 model_config_path = st.sidebar.text_input(
     "Model Config", value="ckpt/model_config.yaml", disabled=st.session_state.is_inferring
 )
@@ -164,6 +181,7 @@ if st.sidebar.button("Save Settings", disabled=st.session_state.is_inferring):
         "output_dir": output_dir,
         "source_folder": source_folder,
         "resume_mode": resume_mode,
+        "selected_model": selected_model,
     }
     save_settings(settings)
     st.sidebar.success("Settings saved!")
@@ -195,7 +213,7 @@ if st.session_state.model_loaded and st.session_state.model is not None:
                 from omegaconf import OmegaConf
 
                 yaml_args = OmegaConf.load(model_config_path)
-                model = load_model(ckpt_dir, yaml_args)
+                model = load_model(ckpt_dir, yaml_args, model_name=selected_model)
 
                 st.session_state.model = model
                 st.session_state.model_loaded = True
@@ -215,7 +233,7 @@ else:
                     from omegaconf import OmegaConf
 
                     yaml_args = OmegaConf.load(model_config_path)
-                    model = load_model(ckpt_dir, yaml_args)
+                    model = load_model(ckpt_dir, yaml_args, model_name=selected_model)
 
                     st.session_state.model = model
                     st.session_state.model_loaded = True
